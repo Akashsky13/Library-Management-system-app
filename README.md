@@ -15,7 +15,9 @@
 
 ![statistics for user](screenshots/stats.png)
 
-![books Page](add_new_section/books.png)
+![books Page](screenshots/add_new_section.png)
+
+![books Page](screenshots/books.png)
 
 ![request control Page](screenshots/request_control.png)
 
