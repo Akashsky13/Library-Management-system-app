@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: rgb(225, 192, 255);
+        }
+
+        .book-box {
+            width: 200px;
+            height: auto;
+            background-color: #f0f0f0;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid black;
+            border-radius: 20px;
+            box-sizing: border-box;
+            display: inline-block;
+            background-color: rgb(158, 176, 246);
+        }
+
+        .book-box img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .button-container form {
+            margin: 0px;
+        }
+
+        .button-container button {
+            flex: 0 0 auto;
+        }
+
+        .feedback-box {
+            display: none;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .feedback-box ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .feedback-box ul li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Your Library</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="/add_new_section">Add New Section</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<h1 style="color: black; margin-left: 20px;">{{ section_name }}</h1>
+<div id="books-container">
+    {% for book in books %}
+    <div class="book-box">
+        <img src="{{ url_for('static', filename=book.image.replace('\\', '/').replace('static/', '')) }}" alt="Book Image">
+        <p><strong>Title:</strong> {{ book.name }}<br>
+        <strong>Author:</strong> {{ book.author }}</p>
+        <strong onclick="toggleFeedback('{{ book.id }}')">Feedbacks</strong>
+        <p>
+            {% if book.num_ratings > 0 %}
+            <span class="rating" data-rating="{{ book.avg_rating }}"></span> - {{ book.num_ratings }} Ratings
+            {% else %}
+            No ratings
+            {% endif %}
+        </p>
+        <p>
+            <h6><strong>View PDF - </strong>
+                <a href="{{ url_for('static', filename=book.pdf.replace('\\', '/').replace('static/', '')) }}" target="none">
+                    <img src="{{ url_for('static', filename='image4.png') }}" alt="PDF Image" style="width: 20px; height: 20px; border-radius: 0px;">
+                </a>
+            </h6>
+        </p>
+        <div class="button-container">
+            <form action="{{ url_for('add_new_section.delete_book', book_id=book.id) }}" method="POST">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+            <button class="btn btn-primary btn-sm" onclick="showUpdateForm('{{ book.id }}')">Update</button>
+        </div>
+        <div id="feedbackBox{{ book.id }}" class="feedback-box">
+            <h4>Feedback:</h4>
+            {% if book.feedback_data %}
+            <ul>
+                {% for feedback, rating in book.feedback_data %}
+                <li>
+                    {% if rating is not none %}
+                    <span class="rating" data-rating="{{ rating }}"></span>
+                    {% endif %}
+                    {% if feedback %}
+                    {{ feedback }}
+                    
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No feedback available.</p>
+            {% endif %}
+        </div>
+        <div id="updateBookForm{{ book.id }}" style="display: none">
+            <h4>Update Book</h4>
+            <form action="{{ url_for('add_new_section.update_book', book_id=book.id) }}" method="POST" enctype="multipart/form-data">
+                <label for="updateTitle{{ book.id }}">Title:</label>
+                <input type="text" id="updateTitle{{ book.id }}" name="title" value="{{ book.name }}"><br>
+                <label for="updateAuthor{{ book.id }}">Author:</label>
+                <input type="text" id="updateAuthor{{ book.id }}" name="author" value="{{ book.author }}"><br>
+                <label for="updatePdf{{ book.id }}">PDF:</label>
+                <input type="file" id="updatePdf{{ book.id }}" name="pdf"><br>
+                <label for="updateImage{{ book.id }}">Image:</label>
+                <input type="file" id="updateImage{{ book.id }}" name="image"><br>
+                <button type="submit" class="btn btn-success">Update</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    function toggleFeedback(bookId) {
+        var feedbackBox = document.getElementById("feedbackBox" + bookId);
+        if (feedbackBox.style.display === "none" || feedbackBox.style.display === "") {
+            feedbackBox.style.display = "block";
+        } else {
+            feedbackBox.style.display = "none";
+        }
+    }
+
+    function showUpdateForm(bookId) {
+        var updateForm = document.getElementById("updateBookForm" + bookId);
+        if (updateForm.style.display === "none" || updateForm.style.display === "") {
+            updateForm.style.display = "block";
+        } else {
+            updateForm.style.display = "none";
+        }
+    }
+
+    function getStarRating(rating) {
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                stars += '<i class="fas fa-star fa-sm"></i>';
+            } else {
+                stars += '<i class="far fa-star fa-sm"></i>';
+            }
+        }
+        return stars;
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".rating").forEach(function(el) {
+            var rating = el.getAttribute("data-rating");
+            if (rating > 0) {
+                el.innerHTML = getStarRating(rating);
+            }
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+</body>
+</html>

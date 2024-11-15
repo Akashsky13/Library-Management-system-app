@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="background.css"   >
+
+
+    <style>
+        body{
+    background-color: rgb(193, 254, 177);
+}
+        canvas {
+            width: 100%;
+            max-width: 400px; 
+            margin: 20px auto;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">Your Library</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation">
+
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+                <a class="nav-link" href="/librarian_dashboard">Total Requests: {{ total_requests }}</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/librarian_dashboard">Active Users: {{ active_users }}</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6"><h2 style="margin-top: 30px;">
+                Requested book status</h2>
+                <canvas id="requestsByStatusChart"></canvas>
+            </div>
+            <div class="col-lg-6">
+                <h2 style="margin-top: 30px;">Top Requested Books</h2>
+                <canvas id="topRequestedBooksChart"></canvas>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6">
+                <h2 style="margin-top: 30px;">Requests Over Time</h2>
+                <canvas id="requestsOverTimeChart"></canvas>
+            </div>
+            <div class="col-lg-6">
+                <h2 style="margin-top: 30px;">Requests by User</h2>
+                <canvas id="requestsByUserChart"></canvas>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <h2 style="margin-top: 30px;">Top Rated Books</h2>
+                <canvas id="topRatedBooksChart"></canvas>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <h2 style="margin-top: 30px;">Popular Sections</h2>
+                <canvas id="popularSectionsChart"></canvas>
+            </div>
+           
+            <div class="col-lg-6">
+                <h2 style="margin-top: 30px;">Other Analytics Metrics</h2>
+                <div class="metrics-container" style="border: 1px solid black; padding: 10px; border-radius: 10px; background-color: rgb(158, 202, 255);">
+                    <!-- Metrics content goes here -->
+                    <p><strong>Total Requests : </strong> {{ total_requests }}</p>
+                    <p> <strong>Average Time to Fulfill Requests : </strong>  {{ avg_fulfillment_time }} days</p>
+                    <p> <strong>Late returns : </strong> {{ late_returns }}</p>
+                    <p> <strong>Active Users : </strong> {{ active_users }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var requestsByStatusData = {
+            labels: [{% for status, _ in requests_by_status %}"{{ status }}",{% endfor %}],
+            datasets: [{
+                label: 'Requests by Status',
+                data: [{% for _, count in requests_by_status %}{{ count }},{% endfor %}],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 1)', 
+                    'rgba(142, 233, 142, 1)', 
+                    'rgba(255, 206, 86, 1)', 
+                    'rgba(75, 192, 192, 1)', 
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)', 
+                    'rgba(142, 233, 142, 1)', 
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)', 
+                ],
+                borderWidth: 1
+            }]
+        };
+    
+        var topRequestedBooksData = {
+    labels: [
+        {% for book_id, _ in top_requested_books %}
+            "{{ book_id }}",
+        {% endfor %}
+    ],
+    datasets: [{
+        label: 'Requests',
+        data: [
+            {% for _, num_requests in top_requested_books %}
+                {{ num_requests }},
+            {% endfor %}
+        ],
+        backgroundColor: [
+            'rgba(255, 99, 132, 1)', 
+            'rgba(54, 162, 235, 1)', 
+            'rgba(255, 206, 86, 1)', 
+            'rgba(75, 192, 192, 1)', 
+        ],
+        borderColor: [
+            'rgba(255, 99, 132, 1)', 
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)', 
+            'rgba(75, 192, 192, 1)',
+        ],
+        borderWidth: 1
+    }]
+};
+
+    
+        var requestsByStatusCtx = document.getElementById('requestsByStatusChart').getContext('2d');
+        var requestsByStatusChart = new Chart(requestsByStatusCtx, {
+            type: 'bar',
+            data: requestsByStatusData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    
+        var topRequestedBooksCtx = document.getElementById('topRequestedBooksChart').getContext('2d');
+        var topRequestedBooksChart = new Chart(topRequestedBooksCtx, {
+            type: 'pie',
+            data: topRequestedBooksData
+        });
+    
+     
+    
+        var requestsOverTimeData = {
+            labels: [{% for date, count in requests_over_time %}"{{ date }}",{% endfor %}],
+            datasets: [{
+                label: 'Requests Over Time',
+                data: [{% for _, count in requests_over_time %}{{ count }},{% endfor %}],
+                backgroundColor: 'rgba(54, 162, 235, 1)', 
+                borderColor: 'rgba(54, 162, 235, 1)', 
+                borderWidth: 1
+            }]
+        };
+
+        var requestsByUserData = {
+            labels: [{% for user_id, _ in requests_by_user %}" {{ user_id }}",{% endfor %}],
+            datasets: [{
+                label: 'Requests',
+                data: [{% for _, count in requests_by_user %}{{ count }},{% endfor %}],
+                backgroundColor: 'rgba(54, 162, 235, 1)', 
+                borderColor: 'rgba(54, 162, 235, 1)', 
+                borderWidth: 1
+            }]
+        };
+
+        var popularSectionsData = {
+            labels: [{% for section_name, _ in popular_sections %}"{{ section_name }}",{% endfor %}],
+            datasets: [{
+                label: 'Popular Sections',
+                data: [{% for _, count in popular_sections %}{{ count }},{% endfor %}],
+                backgroundColor: [
+                    'rgba(255, 206, 86, 1)', 
+                    'rgba(75, 192, 192, 1)', 
+                    'rgba(153, 102, 255, 1)', 
+                    'rgba(255, 159, 64, 1)', 
+                ],
+                borderColor: [
+                    'rgba(255, 206, 86, 1)', 
+                    'rgba(75, 192, 192, 1)', 
+                    'rgba(153, 102, 255, 1)', 
+                    'rgba(255, 159, 64, 1)', 
+                ],
+                borderWidth: 1
+            }]
+        };
+        var requestsOverTimeCtx = document.getElementById('requestsOverTimeChart').getContext('2d');
+        var requestsOverTimeChart = new Chart(requestsOverTimeCtx, {
+            type: 'bar',
+            data: requestsOverTimeData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        var requestsByUserCtx = document.getElementById('requestsByUserChart').getContext('2d');
+        var requestsByUserChart = new Chart(requestsByUserCtx, {
+            type: 'bar',
+            data: requestsByUserData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        var popularSectionsCtx = document.getElementById('popularSectionsChart').getContext('2d');
+        var popularSectionsChart = new Chart(popularSectionsCtx, {
+            type: 'pie',
+            data: popularSectionsData
+        });
+        var topRatedBooksData = {
+        labels: [
+            {% for book_name, _ in top_rated_books %}
+                "{{ book_name }}",
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Average Rating',
+            data: [
+                {% for _, avg_rating in top_rated_books %}
+                    {{ avg_rating }},
+                {% endfor %}
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 1)', 
+                'rgba(54, 162, 235, 1)', 
+                'rgba(255, 206, 86, 1)', 
+                'rgba(75, 192, 192, 1)', 
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)', 
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)', 
+                'rgba(75, 192, 192, 1)',
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    var topRatedBooksCtx = document.getElementById('topRatedBooksChart').getContext('2d');
+    var topRatedBooksChart = new Chart(topRatedBooksCtx, {
+        type: 'bar',
+        data: topRatedBooksData,
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    </script>
+    
+    
+    <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+</body>
+</html>

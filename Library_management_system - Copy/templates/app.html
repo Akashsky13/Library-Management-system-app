@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <style>
+      body {
+            background-image: url('{{ url_for("static", filename="uploads/book3.png") }}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+      .book-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        padding: 20px;
+      }
+      .book {
+  width: 200px;
+  height: 260px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  margin-right: 30px; /* Set the margin between books */
+  margin-bottom: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+      .book-details {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .request-button {
+        align-self: flex-end; /* Align button to the end of the book */
+        margin-top: -40px; /* Align button to the bottom of the book */
+        width: fit-content; /* Set width to fit its content */
+        padding: 2px 4px; /* Add padding */
+      }
+      
+.book-box {
+        width: 200px;
+        height: auto;
+        background-color: #f0f0f0;
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid black;
+        border-radius: 20px;
+        box-sizing: border-box;
+        display: inline-block;
+        background-color: rgb(148, 168, 255);
+      }
+      .book-box img {
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        margin-bottom: 10px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-dark navbar-dark bg-transparent">
+      <div class="container-fluid">
+          <a class="navbar-brand" href="/">Your Library</a>
+          <button
+              class="navbar-toggler"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent"
+              aria-expanded="false"
+              aria-label="Toggle navigation"
+          >
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                  <li class="nav-item">
+                      <a class="nav-link" href="{{ url_for('mybook', user_id=session['user_id']) }}">My Books</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="{{ url_for('user_dashboard', user_id=session['user_id']) }}">My Dashboard</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="{{ url_for('search.search_books', user_id=session['user_id']) }}">Search.    <i class="fas fa-search" style="color: white;" ></i></a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </nav>
+    
+
+    <div id="books-container">
+      {% for book in books %}
+      <div class="book-box">
+        <div class="book-details">
+          <img
+            src="{{ url_for('static', filename=book['image'].replace('\\', '/').replace('static/', '')) }}"
+            alt="Book Image"
+          />
+          <div>
+            <h5>{{ book['name'] }}</h5>
+            <p>{{ book['author'] }}</p>
+          </div>
+          <br>
+        </div>
+        <button class="btn btn-primary request-button" data-book-id="{{ book['id'] }}" style="background-color: rgb(143, 142, 233); color: black;">Request</button>
+        <form class="request-form" style="display: none;" action="/request_book" method="post" data-book-id="{{ book['id'] }}">
+          <input type="hidden" name="bookId" value="{{ book['id'] }}">
+  <input type="hidden" name="bookName" value="{{ book['name'] }}">
+  <input type="hidden" name="authorName" value="{{ book['author'] }}">
+          <label for="numberOfDays{{ book['id'] }}">Number of Days:</label>
+          <input type="number" id="numberOfDays{{ book['id'] }}" name="numberOfDays" required>
+          <input type="submit" value="Request">
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+
+    
+    <script>
+      // JavaScript code to handle request button click event
+const requestButtons = document.querySelectorAll('.request-button');
+requestButtons.forEach(button => {
+  button.addEventListener('click', function(event) {
+    event.preventDefault();  // Prevent default form submission
+    
+    // Show the corresponding request form
+    const bookId = this.getAttribute('data-book-id');
+    const requestForm = document.querySelector(`.request-form[data-book-id="${bookId}"]`);
+    requestForm.style.display = 'block';
+    
+    // Populate book name and author name
+    const bookName = this.closest('.book-details').querySelector('h5').innerText;
+    const authorName = this.closest('.book-details').querySelector('p').innerText;
+    requestForm.querySelector('input[name="bookName"]').value = bookName;
+    requestForm.querySelector('input[name="authorName"]').value = authorName;
+  });
+});
+
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+   
+
+  </body>
+</html>

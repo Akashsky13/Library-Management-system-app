@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My music app - Search Results</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <style>
+      body {
+            background-image: url('{{ url_for("static", filename="uploads/book3.png") }}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+      .bottom-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        pointer-events: none;
+        display: flex;
+        color: black;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+      }
+
+      .icons {
+        margin-left: 10px; /* Adjust as needed */
+      }
+
+      .song-card {
+        width: 250px;
+        margin: 0px;
+      }
+
+      .song-image {
+        max-width: 90%;
+        max-height: 150px;
+        object-fit: cover;
+        margin-left: 10px;
+        margin-top: 10px;
+        border-radius: 10px;
+      }
+
+      .card-body {
+        padding: 15px;
+      }
+
+      h3 {
+        margin-top: 20px;
+        color: black;
+      }
+
+      .songInfo {
+        display: flex;
+        align-items: center;
+      }
+
+      .book-box {
+        width: 200px;
+        height: auto;
+        background-color: #f0f0f0;
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid black;
+        border-radius: 20px;
+        box-sizing: border-box;
+        display: inline-block;
+        background-color: rgb(158, 176, 246);
+      }
+
+      .book-box img {
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg bg-dark navbar-dark bg-transparent">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">Your Library</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
+          <form
+            class="d-flex"
+            role="search"
+            method="post"
+            action="{{ url_for('search.search_books') }}"
+            style="margin-top: 10px"
+          >
+            <div class="mb-3">
+              <input
+                type="text"
+                class="form-control"
+                id="search_term"
+                placeholder="Book/Author"
+                name="search_term"
+                required
+              />
+            </div>
+            <div class="mb-3" style="margin-left: 10px">
+              <input
+                type="text"
+                class="form-control"
+                id="section_name"
+                placeholder="Section"
+                name="section_name"
+              />
+            </div>
+            <button
+              type="submit"
+              class="btn btn-outline-primary btn-sm"
+              style="margin-left: 10px; width: 90px; height: 40px"
+            >
+              Search
+            </button>
+          </form>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid" style="margin-top: 20px">
+      <div id="books-container">
+        <div class="row">
+          {% if books_list %} {% for book in books_list %}
+          <div class="col-md-3">
+            <div class="book-box">
+              <img
+                src="{{ url_for('static', filename=book.image.replace('\\', '/').replace('static/', '')) }}"
+                alt="Book Image"
+              />
+              <div class="card-body">
+                <span class="card-title"
+                  ><strong>Book:</strong> {{ book.name }}</span
+                >
+                <br />
+                <span class="card-title"
+                  ><strong>Author:</strong> {{ book.author }}</span
+                >
+              </div>
+            </div>
+          </div>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Your JavaScript code -->
+    <script>
+      const requestButtons = document.querySelectorAll(".request-button");
+      requestButtons.forEach((button) => {
+        button.addEventListener("click", function (event) {
+          event.preventDefault(); // Prevent default form submission
+
+          // Show the corresponding request form
+          const bookId = this.getAttribute("data-book-id");
+          const requestForm = document.querySelector(
+            `.request-form[data-book-id="${bookId}"]`
+          );
+          requestForm.style.display = "block";
+
+          // Populate book name and author name
+          const bookName = this.closest(".book-box")
+            .querySelector(".card-body")
+            .querySelector(".card-title:nth-child(1)").innerText;
+          const authorName = this.closest(".book-box")
+            .querySelector(".card-body")
+            .querySelector(".card-title:nth-child(2)").innerText;
+          requestForm.querySelector('input[name="bookName"]').value = bookName;
+          requestForm.querySelector('input[name="authorName"]').value =
+            authorName;
+        });
+      });
+    </script>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-SJFDN7AqVR2mLl6tF7Pwv3z0F5Ud6YOpeWzD+4e3NqprS5J8ZDz1zoVR9HqBoAB"
+      crossorigin="anonymous"
+    ></script>
+
+    <script
+      src="https://kit.fontawesome.com/26504e4a1f.js"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>

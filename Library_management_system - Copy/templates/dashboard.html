@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <style>
+      body {
+            background-image: url('{{ url_for("static", filename="uploads/book3.png") }}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+      .request-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between; /* Adjust as needed */
+      }
+      .request-box {
+        border: 2px solid black;
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 10px;
+        margin-right: 20px;
+        background-color: rgb(196, 251, 173);
+        margin-top: 20px;
+        width: 400px;
+        margin-left: 10px;     
+      }
+      .request-details {
+        margin-bottom: 5px;
+      }
+      .button-container {
+        display: flex; 
+        justify-content: space-between;
+      }
+      .button-container button {
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      .hidden {
+        display: none;
+      }
+      /* Updated CSS for the pop-up box */
+      .popup-box {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 300px;
+        padding: 20px;
+        background-color: #d0f9f4;
+        border: 1px solid black;
+        border-radius: 20px;
+        z-index: 9999;
+      }
+
+      .popup-box h2 {
+        margin-top: 0;
+      }
+      /* Updated CSS for the "View Details" link */
+      .button-container a {
+        color: #333; /* Change the color to your desired color */
+        text-decoration: none; /* Remove the underline */
+        font-weight: bold; /* Make the text bold */
+        transition: color 0.3s; /* Add transition for smooth color change */
+      }
+
+      .button-container a:hover {
+        color: #555; /* Change the color on hover */
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-black navbar-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">Your Library</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            
+            <li class="nav-item">
+              <a class="nav-link" href="/add_new_section">add new section</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/librarian_dashboard">Analytics  <img src="static/imag5.png" style="height: 20px; width: 25px;" alt=""></a>
+            </li>
+        </div>
+      </div>
+    </nav>
+    
+
+    <div class="request-container">
+      {% for req in requests %}
+      <div class="request-box">
+        <div class="request-details">
+          <p>
+            <strong>User Email:</strong> {{ user_emails.get(req[1]) }}
+          </p>
+          <p><strong>Book Name:</strong> {{ req[3] }}</p>
+          <p><strong>Author:</strong> {{ req[4] }}</p>
+          <p><strong>Requested Date:</strong> {{ req[6] }}</p>
+          <p><strong>Status:</strong> {{ req[7] }}</p>
+          {% if req[7] == 'grant' %}
+      {% if req[13] < 0 %}
+      <p style="color: red;"><strong>Late:</strong> {{ req[13] }} days</p> <!-- Display red flag for late requests -->
+      {% else %}
+      <p><strong>Days Left:</strong> {{ req[13] }}</p>
+      {% endif %}
+      {% endif %}
+  
+        </div>
+        <div class="button-container">
+          {% if req[7] == 'Pending' %}
+          <button
+            type="button"
+            class="btn btn-success"
+            onclick="showForm({{ req[0] }})"
+            style="color: black; background-color: rgb(195, 244, 195)">Grant</button>
+          {% endif %}
+          
+          <button
+            type="button"
+            class="btn btn-warning"
+            onclick="updateStatus({{ req[0] }}, 'reject')"
+            style="color: black; background-color: rgb(246, 230, 171)"
+          >
+            Reject
+          </button>
+
+          <a
+            href="#"
+            onclick="showBookDetails('{{ req[3] }}', '{{ req[4] }}', '{{ req[5] }}', {{ req[10] }}, '{{ user_emails.get(req[1], 'N/A') }}')"
+            >View Details</a
+          >
+        </div>
+        <form id="issue-form-{{ req[0] }}" class="hidden">
+          <label for="issue-date">Issue Date:</label>
+          <input
+            type="date"
+            id="issue-date-{{ req[0] }}"
+            name="issue-date"
+            required />
+          <br>
+          <label for="return-date">Return Date:</label>
+          <input
+            type="date"
+            id="return-date-{{ req[0] }}"
+            name="return-date"
+            required/>
+          <button
+            type="button"
+            class="btn btn-success"
+            onclick="issueBook({{ req[0] }})"
+            style="color: black; background-color: rgb(195, 244, 195)">Issue</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="book-details-popup" class="popup-box">
+      <h2>Book Details</h2>
+      <p><strong>Email:</strong> <span id="email"></span></p>
+      <p><strong>Book Name:</strong> <span id="book-name"></span></p>
+      <p><strong>Author:</strong> <span id="author"></span></p>
+      <p><strong>Section:</strong> <span id="section"></span></p>
+      <p><strong>Requested days:</strong> <span id="days"></span></p>
+      
+      <!-- Add this paragraph -->
+      <button
+        type="button"
+        class="btn btn-success"
+        onclick="closePopup()"
+        style="background-color: lightgrey; color: black"
+      >
+        Close
+      </button>
+    </div>
+
+    <script>
+      function updateStatus(requestId, status) {
+        // Send an AJAX request to update the request status
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/update_status", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            location.reload();
+          } else {
+            console.error("Failed to update request status");
+          }
+        };
+        xhr.send(JSON.stringify({ request_id: requestId, status: status }));
+      }
+
+      function showForm(requestId) {
+        var form = document.getElementById("issue-form-" + requestId);
+        form.classList.remove("hidden");
+      }
+
+      function issueBook(requestId) {
+        var issueDate = document.getElementById(
+          "issue-date-" + requestId
+        ).value;
+        var returnDate = document.getElementById(
+          "return-date-" + requestId
+        ).value;
+
+        // Send an AJAX request to update the issue date, return date, and status
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/issue_book", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            location.reload();
+          } else {
+            console.error("Failed to issue book");
+          }
+        };
+        xhr.send(
+          JSON.stringify({
+            request_id: requestId,
+            issue_date: issueDate,
+            return_date: returnDate,
+            status: "grant",
+          })
+        );
+      }
+
+      // Function to show book details in pop-up
+      // Function to show book details in pop-up
+      function showBookDetails(bookName, author, section, days, email) {
+        var popup = document.getElementById("book-details-popup");
+        document.getElementById("book-name").textContent = bookName;
+        document.getElementById("author").textContent = author;
+        document.getElementById("section").textContent = section;
+        document.getElementById("days").textContent = days;
+        document.getElementById("email").textContent = email; // Update email content
+        popup.style.display = "block";
+      }
+
+      function closePopup() {
+        var popup = document.getElementById("book-details-popup");
+        popup.style.display = "none";
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://kit.fontawesome.com/b763162e23.js" crossorigin="anonymous"></script>
+  </body>
+</html>

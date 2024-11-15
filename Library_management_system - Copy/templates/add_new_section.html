@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('{{ url_for('static', filename='uploads/677.png') }}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: -1;
+        }
+
+      .circle-container {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 10px; /* Adjust this value as needed */
+      }
+
+      .circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 100%;
+        background-color: rgb(84, 155, 241);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-decoration: none;
+        color: black;
+      }
+
+      .circle:hover {
+        background-color: black;
+        color: white;
+      }
+
+      .form-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 5px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .section-box {
+        width: 200px;
+        height: 450px;
+        margin-top: 20px;
+        border: 1px solid #0a0101;
+        padding: 10px;
+        border-radius: 10px;
+        display: inline-block;
+        margin-right: 10px;
+        margin-left: 10px;
+        border-width: 2px;
+        background-color: rgb(200, 253, 171);
+        color: black;
+      }
+
+      .arrow {
+        display: inline-block;
+        margin-left: 5px; /* Adjust as needed */
+        font-size: 40px; /* Adjust arrow size */
+      }
+
+      .circle-container {
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      .description-box {
+        display: none;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        margin-top: 10px;
+      }
+    </style>
+    
+  </head>
+  <body>
+    <div class="background-image"></div>
+    <nav class="navbar navbar-expand-lg bg-dark navbar-dark bg-transparent">
+      <div class="container-fluid">
+          <a class="navbar-brand" href="/">Your Library</a>
+          <button
+              class="navbar-toggler"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent"
+              aria-expanded="false"
+              aria-label="Toggle navigation"
+          >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="/dashboard">Dashboard</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/librarian_dashboard">Analytics</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" style="color: white;">Total Sections: {{ total_sections }}</a>
+            </li>
+            <!-- Total Books link -->
+            <li class="nav-item">
+              <a class="nav-link" href="#" style="color: white;">Total Books: {{ total_books }}</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <h1>
+      <div class="circle-container" style="margin-left: 94%; margin-top: 10px;">
+        <a href="#" class="circle" id="openForm">
+          <span style="font-size: 40px;">+</span>
+        </a>
+      </div>
+    </h1>
+
+    <div class="form-container" id="sectionFormContainer" style="display: none">
+      <form
+        id="sectionForm"
+        enctype="multipart/form-data"
+        method="POST"
+        action="{{ url_for('add_new_section.show_add_new_section') }}">
+        <div class="mb-3">
+          <input type="text" class="form-control" id="title" placeholder="Section name" name="title" />
+        </div>
+        <div class="mb-3">
+          <input
+            type="date"
+            class="form-control"
+            id="dateCreated"
+            name="dateCreated"
+            placeholder="Date"
+          />
+        </div>
+        <div class="mb-3">
+          <input type="file" class="form-control" id="image" name="image" />
+        </div>
+        <div class="mb-3">
+          <textarea
+            class="form-control"
+            id="description"
+            name="description"
+            rows="3"
+            placeholder="description"
+          ></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
+
+    <div id="sectionDetails" class="row">
+      {% for section in sections %}
+      <div class="col-md-2 mb-2" style="margin-left: 30px;">
+        <div class="section-box">
+          <a
+            href="{{ url_for('add_new_section.section_books', section_id=section[0]) }}"
+          >
+            {% if section[3] %}
+            <img src="{{ section[3] }}" class="img-fluid" alt="Section Image" style="border-radius: 10px;" />
+            {% endif %}
+          </a>
+          <h3 style="display: inline-block; margin-left: 5px;">{{ section[1] }}</h3> <!-- Section name -->
+          <a href="{{ url_for('add_new_section.add_book', section_id=section[0]) }}" style="margin-left: 10px; text-decoration: none; color: black;">
+            <span style="font-size: 20px;"><i class="fa-solid fa-upload"></i></span> 
+          </a>
+
+          <span style="margin-left:5px ;">{{ section[2][8:10]}}/{{section[2][5:7]}}/{{section[2][0:4]}}</span>
+
+          <div style="display: inline-block; margin-left: 5px; "> <!-- Container for buttons -->
+            <form action="{{ url_for('add_new_section.delete_section', section_id=section[0]) }}" method="POST" style="display: inline;">
+              <button type="submit" class="btn btn- btn" style="background-color:rgb(200, 253, 171) ;">
+                  <i class="fa-solid fa-trash-can" style="color: black;"></i> 
+              </button>
+          </form>
+          
+            <button class="btn btn- btn" onclick="showUpdateForm('{{ section[0] }}')" style="background-color:rgb(200, 253, 171); color: black;"><i class="fa-solid fa-pen" style="color: black;"></i></button>
+          </div>
+
+
+          <button id="toggle-btn-{{ section[0] }}" class="btn btn- btn" onclick="toggleDescription('{{ section[0] }}')" style="margin-left: 10px; margin-top: 5px; background-color:rgb(200, 253, 171); color: black;">
+            <i class="fa-solid fa-info-circle"></i> <!-- Icon for description -->
+        </button>
+        
+
+          <div id="desc-{{ section[0] }}" class="description-box">
+            <p>{{ section[4] }}</p>
+          </div>
+          <!-- Update form -->
+          <div id="updateSectionForm{{ section[0] }}" style="display: none">
+            <form
+              action="{{ url_for('add_new_section.update_section', section_id=section[0]) }}"
+              method="POST"
+              enctype="multipart/form-data"
+            >
+              <label for="updateTitle{{ section[0] }}">Title:</label>
+              <input
+                type="text"
+                id="updateTitle{{ section[0] }}"
+                name="title"
+                value="{{ section[1] }}"
+              /><br />
+              <label for="updateDate{{ section[0] }}">Date Created:</label>
+              <input
+                type="date"
+                id="updateDate{{ section[0] }}"
+                name="dateCreated"
+                value="{{ section[2] }}"
+              /><br />
+              <label for="updateImage{{ section[0] }}">Upload Image:</label>
+              <input
+                type="file"
+                id="updateImage{{ section[0] }}"
+                name="image"
+                accept="image/*"
+              /><br />
+              <label for="updateDescription{{ section[0] }}">Description:</label><br />
+              <textarea
+                id="updateDescription{{ section[0] }}"
+                name="description"
+                rows="4"
+                cols="50"
+              >{{ section[4] }}</textarea><br />
+              <button type="submit" class="btn btn-success">Update</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <script>
+      function showUpdateForm(sectionId) {
+        var updateForm = document.getElementById(
+          "updateSectionForm" + sectionId
+        );
+        if (updateForm.style.display === "none") {
+          updateForm.style.display = "block";
+        } else {
+          updateForm.style.display = "none";
+        }
+      }
+
+      document
+        .getElementById("openForm")
+        .addEventListener("click", function () {
+          document.getElementById("sectionFormContainer").style.display =
+            "block";
+        });
+      document
+        .getElementById("sectionForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          var formData = new FormData(this);
+          fetch('{{ url_for("add_new_section.show_add_new_section") }}', {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => {
+              if (response.ok) {
+                location.reload();
+              } else {
+                console.error("Error:", response.statusText);
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        });
+    </script>
+    <script>
+      function toggleDescription(sectionId) {
+        var desc = document.getElementById('desc-' + sectionId);
+        var btn = document.getElementById('toggle-btn-' + sectionId);
+        var icon = document.createElement('i');
+        icon.classList.add('fa', 'fa-info-circle'); // Add Font Awesome classes to the icon
+        if (desc.style.display === 'none' || desc.style.display === '') {
+          desc.style.display = 'block';
+          btn.innerHTML = ''; // Clear the button content
+          btn.appendChild(icon); // Append the icon to the button
+          btn.setAttribute('onclick', `toggleDescription('${sectionId}')`); // Reassign the onclick function
+        } else {
+          desc.style.display = 'none';
+          btn.innerHTML = ''; // Clear the button content
+          btn.appendChild(icon); // Append the icon to the button
+          btn.setAttribute('onclick', `toggleDescription('${sectionId}')`); // Reassign the onclick function
+        }
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
