@@ -9,48 +9,92 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script> 
     <style>
+        /* Background and Body Styles */
         body {
             background-image: url('{{ url_for("static", filename="uploads/book3.png") }}');
             background-size: cover;
             background-repeat: no-repeat;
             background-attachment: fixed;
+            font-family: 'Arial', sans-serif;
+            color: #2e2e2e;
+            padding-bottom: 30px;
         }
+
+        /* Navbar Styles */
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #f8f9fa;
+        }
+        .navbar-nav .nav-link {
+            color: #d3d3d3;
+            transition: color 0.3s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #9efb99;
+        }
+
+        /* Dashboard Info Cards */
         .dashboard-info {
-            background-color: #dbfbda;
+            background-color: #ffffffcc;
             border-radius: 10px;
-            padding: 10px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            margin-left: 10px;
-            display: inline-block;
-            width: fit-content; 
+            padding: 15px 20px;
+            margin: 10px auto;
+            display: block;
+            width: auto;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .dashboard-info:hover {
+            transform: scale(1.05);
         }
         .dashboard-info p {
             font-weight: bold;
-            color: black;
+            color: #343a40;
             margin: 0;
         }
         .dashboard-info p span {
             font-weight: normal;
-            color: blue; 
-            font-weight: bold;
+            color: #0d6efd;
         }
+
+        /* Button Styling */
+        .btn {
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        #monthlyReportButton {
+            background-color: #28a745;
+            border: none;
+            padding: 8px 15px;
+            transition: all 0.3s ease;
+        }
+        #monthlyReportButton:hover {
+            background-color: #218838;
+            color: #fff;
+        }
+
+        /* Canvas Styling */
         canvas {
             width: 100%;
-            max-width: 800px; 
-            margin: -2px auto;
+            max-width: 800px;
+            margin: 20px auto;
             border-radius: 10px;
-            margin-top: 40px;
-            margin-bottom: 40px;
-            background-color: rgb(217, 255, 220);
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
-        
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg bg-dark navbar-dark bg-transparent">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/" style="color: white;">Your Library</a>
+            <a class="navbar-brand" href="/">Your Library</a>
             <button
                 class="navbar-toggler"
                 type="button"
@@ -67,12 +111,15 @@
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('mybook', user_id=session['user_id']) }}">My Books</a>
               </li>
-              <button class="btn btn-success btn-sm" id="monthlyReportButton" style="color: black; background-color: #9efb99;">Monthly Report</button>
+              <li class="nav-item">
+                <button class="btn btn-success btn-sm" id="monthlyReportButton">Monthly Report</button>
+              </li>
             </ul>
           </div>
         </div>
       </nav>
-      <div id="app">
+
+      <div id="app" class="container">
         <p class="dashboard-info">Total Book Requested - <span>{{ num_books_requested }}</span></p>
 
         <p class="dashboard-info">Total Completed Requests - <span>{{ num_completed_requests }}</span></p>
@@ -80,118 +127,115 @@
         <p class="dashboard-info">Books Requested this Month - <span>{{ num_books_requested_month }}</span><br>
          Completed -  <span>{{ num_completed_books_month }}</span></p>
 
-        <p class="dashboard-info">Favorite Section - <span>{{ favorite_section['section_name'] }} </span><br><span> Requested {{ favorite_section['section_name'] }} books are - {{ favorite_section['count'] }}</span></p>
+        <p class="dashboard-info">Favorite Section - <span>{{ favorite_section['section_name'] }} </span><br>
+          Requested {{ favorite_section['section_name'] }} books are - <span>{{ favorite_section['count'] }}</span></p>
 
         <p class="dashboard-info">Favorite Author - <span>{{ favorite_author['author_name'] }}</span></p>
-        <br>
-        <br>
 
         <canvas id="myChart" width="400" height="200"></canvas>
         <canvas id="requestedBooksChart" width="400" height="200"></canvas>
     </div>
 
     <script>
-        var app = new Vue({
-            el: '#app',
-            data: {
-                numBooksRequested: {{ num_books_requested | tojson }},
-                numCompletedRequests: {{ num_completed_requests | tojson }},
-                numBooksRequestedMonth: {{ num_books_requested_month | tojson }},
-                numCompletedBooksMonth: {{ num_completed_books_month | tojson }},
-                favoriteSection: {{ favorite_section | tojson }},
-                favoriteAuthor: {{ favorite_author | tojson }},
-                requestedBooksData: {{ requested_books_data | tojson }}
+        document.addEventListener("DOMContentLoaded", function() {
+            var numBooksRequested = {{ num_books_requested }};
+            var numCompletedRequests = {{ num_completed_requests }};
+            var numBooksRequestedMonth = {{ num_books_requested_month }};
+            var numCompletedBooksMonth = {{ num_completed_books_month }};
+            var requestedBooksData = {{ requested_books_data | tojson }};
+    
+            const ctx = document.getElementById('myChart').getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [
+                'Books Requested', 
+                'Completed Requests', 
+                'Books Requested This Month', 
+                'Completed Books This Month'
+            ],
+            datasets: [{
+                label: 'Books Statistics',
+                data: [numBooksRequested, numCompletedRequests, numBooksRequestedMonth, numCompletedBooksMonth],
+                backgroundColor: [
+                    'rgba(173, 216, 230, 0.7)', // Light Blue
+                    'rgba(144, 238, 144, 0.7)', // Light Green
+                    'rgba(255, 182, 193, 0.7)', // Light Pink
+                    'rgba(255, 239, 154, 0.7)'  // Light Yellow
+                ],
+                borderColor: [
+                    'rgba(135, 206, 250, 1)',   // Sky Blue
+                    'rgba(102, 205, 170, 1)',   // Medium Aquamarine
+                    'rgba(255, 105, 180, 1)',   // Hot Pink
+                    'rgba(255, 215, 0, 1)'      // Gold
+                ],
+                borderWidth: 2,
+                borderRadius: 7, // Smooth corners
+                hoverBackgroundColor: [
+                    'rgba(135, 206, 250, 1)', 
+                    'rgba(102, 205, 170, 1)', 
+                    'rgba(255, 105, 180, 1)', 
+                    'rgba(255, 215, 0, 1)'
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: '#374151', // Dark Gray Tooltip
+                    titleColor: '#FFFFFF',
+                    bodyColor: '#F3F4F6',
+                }
             },
-            mounted() {
-                console.log('Vue instance mounted!');
-                console.log('numBooksRequested:', this.numBooksRequested);
-                console.log('numCompletedRequests:', this.numCompletedRequests);
-                console.log('numBooksRequestedMonth:', this.numBooksRequestedMonth);
-                console.log('numCompletedBooksMonth:', this.numCompletedBooksMonth);
-                console.log('favoriteSection:', this.favoriteSection);
-                console.log('favoriteAuthor:', this.favoriteAuthor);
-                console.log('requestedBooksData:', this.requestedBooksData);
-                this.createCharts();
-            },
-            methods: {
-                createCharts() {
-                    var ctx = document.getElementById('myChart').getContext('2d');
-                    var myChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Books Requested', 'Completed Requests', 'Books Requested This Month', 'Completed Books This Month'],
-                            datasets: [{
-                                label: 'Data',
-                                data: [this.numBooksRequested, this.numCompletedRequests, this.numBooksRequestedMonth, this.numCompletedBooksMonth],
-                                backgroundColor: [
-                                    'rgba(75, 0, 130, 0.6)',   
-                                    'rgba(0, 100, 0, 0.6)',    
-                                    'rgba(139, 0, 0, 0.6)',    
-                                    'rgba(0, 0, 139, 0.6)'     
-                                ],
-                                borderColor: [
-                                    'rgba(75, 0, 130, 1)',    
-                                    'rgba(0, 100, 0, 1)',     
-                                    'rgba(139, 0, 0, 1)',     
-                                    'rgba(0, 0, 139, 1)'     
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            scales: {
-                                y: {
-                                    beginAtZero: true
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                }
-                            }
-                        }
-                    });
-
-                    var requestedBooksCtx = document.getElementById('requestedBooksChart').getContext('2d');
-                    var requestedBooksChart = new Chart(requestedBooksCtx, {
-                        type: 'line',
-                        data: {
-                            labels: Object.keys(this.requestedBooksData),
-                            datasets: [{
-                                label: 'Books Requested Per Month',
-                                data: Object.values(this.requestedBooksData),
-                                fill: false,
-                                borderColor: 'rgba(0, 0, 0, 1)',
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            scales: {
-                                y: {
-                                    beginAtZero: true
-                                }
-                            }
-                        }
-                    });
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#1F2937', // Dark Gray Text
+                        font: { size: 14 },
+                    },
+                    grid: {
+                        color: '#E5E7EB', // Light Gray Grid
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#1F2937', // Dark Gray Text
+                        font: { size: 14 },
+                    },
+                    grid: {
+                        display: false,
+                    }
                 }
             }
-        });
-    </script>
-    <script>
-        document.getElementById('monthlyReportButton').addEventListener('click', function() {
-            fetch('/send_monthly_report/{{ user_id }}', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = '/user_dashboard/{{ user_id }}';
-                } else {
-                    console.error('Error sending monthly report:', data.error);
+        }
+    });
+    
+            var requestedBooksCtx = document.getElementById('requestedBooksChart').getContext('2d');
+            var requestedBooksChart = new Chart(requestedBooksCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(requestedBooksData),
+                    datasets: [{
+                        label: 'Books Requested Per Month',
+                        data: Object.values(requestedBooksData),
+                        fill: false,
+                        borderColor: 'rgba(75, 192, 192, 1)', // Teal
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
-            })
-            .catch(error => {
-                console.error('Error sending monthly report:', error);
             });
         });
     </script>
@@ -199,127 +243,3 @@
 </body>
 </html>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- 
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        var numBooksRequested = {{ num_books_requested }};
-        var numCompletedRequests = {{ num_completed_requests }};
-        var numBooksRequestedMonth = {{ num_books_requested_month }};
-        var numCompletedBooksMonth = {{ num_completed_books_month }};
-        var requestedBooksData = {{ requested_books_data | tojson }};
-
-        var ctx = document.getElementById('myChart').getContext('2d');
-        var myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Books Requested', 'Completed Requests', 'Books Requested This Month', 'Completed Books This Month'],
-                datasets: [{
-                    label: 'Data',
-                    data: [numBooksRequested, numCompletedRequests, numBooksRequestedMonth, numCompletedBooksMonth],
-                    backgroundColor: [
-                        'rgba(75, 0, 130, 0.6)',   
-                        'rgba(0, 100, 0, 0.6)',    
-                        'rgba(139, 0, 0, 0.6)',    
-                        'rgba(0, 0, 139, 0.6)'     
-                    ],
-                    borderColor: [
-                        'rgba(75, 0, 130, 1)',    
-                        'rgba(0, 100, 0, 1)',     
-                        'rgba(139, 0, 0, 1)',     
-                        'rgba(0, 0, 139, 1)'     
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-
-        var requestedBooksCtx = document.getElementById('requestedBooksChart').getContext('2d');
-        var requestedBooksChart = new Chart(requestedBooksCtx, {
-            type: 'line',
-            data: {
-                labels: Object.keys(requestedBooksData),
-                datasets: [{
-                    label: 'Books Requested Per Month',
-                    data: Object.values(requestedBooksData),
-                    fill: false,
-                    borderColor: 'rgba(75, 192, 192, 1)', // Teal
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    });
-</script> -->
