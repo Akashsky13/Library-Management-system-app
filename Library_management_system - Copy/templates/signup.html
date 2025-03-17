@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Your Library</title>
+    <title>Signup | Your Library</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #000000, #ffffff);
+            background: linear-gradient(135deg, #2C003E, #fcfcfc);
             height: 100vh;
             display: flex;
             align-items: center;
@@ -17,7 +17,7 @@
 
         .glass-card {
             background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(10px);
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
@@ -28,7 +28,7 @@
 
         .glass-card h2 {
             font-weight: bold;
-            color: #222;
+            color: #EDEDED;
         }
 
         .form-control {
@@ -39,12 +39,12 @@
         }
 
         .form-control:focus {
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 10px rgba(94, 23, 235, 0.5);
             border: none;
         }
 
         .btn-custom {
-            background: #413c3c;
+            background: #634f89;
             border: none;
             padding: 12px;
             width: 100%;
@@ -55,13 +55,13 @@
         }
 
         .btn-custom:hover {
-            background: #333333;
+            background: #8260c7;
         }
 
         .link {
             display: block;
             margin-top: 15px;
-            color: #000000;
+            color: #EDEDED;
             text-decoration: none;
             font-weight: bold;
         }
@@ -77,14 +77,6 @@
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(5px);
         }
-
-        .typewriter {
-            font-size: 18px;
-            font-weight: bold;
-            color: #222;
-            margin-bottom: 15px;
-            min-height: 25px;
-        }
     </style>
 </head>
 <body>
@@ -95,40 +87,19 @@
     </nav>
 
     <div class="glass-card">
-        <div class="typewriter" id="typewriter-text"></div>
-        <h2>Login</h2>
-        <form method="post" action="/login">
+        <h2>Sign Up</h2>
+        <form method="post" action="/signup">
             <div class="mb-3">
-                <input type="email" class="form-control" id="email" name="email" placeholder="Email Address" autocomplete="off" list="recentEmails" required>
-                <datalist id="recentEmails">
-                    <option value="akashmauryasky12@gmail.com">
-                    <option value="22f3003152@ds.study.iitm.ac.in">
-                </datalist>
+                <input type="email" class="form-control" name="email" placeholder="Email Address" required>
             </div>
             <div class="mb-3">
-                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                <input type="password" class="form-control" name="password" placeholder="Password" required>
             </div>
-            <button type="submit" class="btn btn-custom">Login</button>
+            <button type="submit" class="btn btn-custom">Create Account</button>
         </form>
-        <a href="/signup" class="link">Don't have an account? Sign up here</a>
+        <a href="/login" class="link">Already have an account? Login</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const text = "Welcome to Your Library Web Page";
-            let index = 0;
-
-            function typeWriter() {
-                if (index < text.length) {
-                    document.getElementById("typewriter-text").textContent += text.charAt(index);
-                    index++;
-                    setTimeout(typeWriter, 100);
-                }
-            }
-
-            typeWriter();
-        });
-    </script>
 </body>
 </html>

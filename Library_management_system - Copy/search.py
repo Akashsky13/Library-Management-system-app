@@ -15,7 +15,7 @@ def request_book():
     # Check if the user is logged in
     if 'user_id' not in session:
         flash("User not logged in", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
     user_id = session['user_id']
     

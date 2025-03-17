@@ -1,13 +1,16 @@
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash,json
 import datetime
 import json
+import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
+
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import sqlite3
 from librarian_dashboard import librarian_dashboards
 from add_new_section import add_new_section
-from librarian_login import librarian_login
+
 from dashboard import dashboard
 from search import search
 from werkzeug.utils import secure_filename
@@ -16,7 +19,6 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(16) 
 app.register_blueprint(librarian_dashboards)
 app.register_blueprint(add_new_section)
-app.register_blueprint(librarian_login)
 app.register_blueprint(dashboard)
 app.register_blueprint(search, url_prefix='/search')
 
@@ -28,17 +30,19 @@ class SQLiteRowEncoder(json.JSONEncoder):
             return dict(obj)
         return super().default(obj)  
 
-def create_login_table():
+def create_users_table():
     with sqlite3.connect('library.db') as conn:
         cursor = conn.cursor()
         cursor.execute('''
-                 CREATE TABLE IF NOT EXISTS login (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  email TEXT UNIQUE NOT NULL,
-                  password TEXT NOT NULL,
-                  last_login TIMESTAMP
-                 )
-                  ''')
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                is_admin INTEGER DEFAULT 0,
+                is_block INTEGER DEFAULT 0,
+                last_login TIMESTAMP
+            )
+        ''')
 
         
         cursor.execute('''
@@ -64,6 +68,7 @@ def create_login_table():
 
 
 
+create_users_table()
 
 def query_login_db(query, args=(), one=False):
     with sqlite3.connect('library.db') as conn:
@@ -73,7 +78,7 @@ def query_login_db(query, args=(), one=False):
     return result
 
 def login_user(email, password):
-    user = query_login_db('SELECT * FROM login WHERE email = ? AND password = ?', (email, password), one=True)
+    user = query_login_db('SELECT * FROM users WHERE email = ? AND password = ?', (email, password), one=True)
     if user:
         update_last_login(user['id'])
         return user
@@ -84,53 +89,104 @@ def update_last_login(user_id):
     current_datetime = datetime.datetime.now().isoformat()
     with sqlite3.connect('library.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('UPDATE login SET last_login = ? WHERE id = ?', (current_datetime, user_id))
+        cursor.execute('UPDATE users SET last_login = ? WHERE id = ?', (current_datetime, user_id))
         conn.commit()
 
 def create_user(email, password):
     with sqlite3.connect('library.db') as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO login (email, password) 
+            INSERT INTO users (email, password) 
             VALUES (?, ?)
         ''', (email, password))
         conn.commit()
 
-
-create_login_table()
-def create_user_if_not_exists(email, password):
+def create_admin():
     with sqlite3.connect('library.db') as conn:
         cursor = conn.cursor()
-        existing_user = query_login_db('SELECT * FROM login WHERE email = ?', (email,), one=True)
-        if existing_user:
-            return None
-        else:
-            cursor.execute('''
-                INSERT INTO login (email, password) 
-                VALUES (?, ?)
-            ''', (email, password))
+        cursor.execute("SELECT * FROM users WHERE email = ?", ('admin@gmail.com',))
+        admin = cursor.fetchone()
+        if not admin:
+            hashed_password = generate_password_hash('pass', method='pbkdf2:sha256')
+            cursor.execute("""
+                INSERT INTO users (email, password, is_admin) 
+                VALUES (?, ?, ?)
+            """, ('admin@gmail.com', hashed_password, 1))
             conn.commit()
-            new_user = query_login_db('SELECT * FROM login WHERE email = ?', (email,), one=True)
-            return new_user
-@app.route("/", methods=['GET', 'POST'])
-def login_or_signup():
+
+
+@app.route('/')
+def homes():
+    if 'user_id' in session:
+        return redirect(url_for('user_dashboard', user_id=session['user_id']))
+    else:
+        return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        user = login_user(email, password)
-        if user:
-            session['user_id'] = user['id']
-            session['user_email'] = user['email']
-            return redirect(url_for('home', user_id=user['id'])) 
-        new_user = create_user_if_not_exists(email, password)
-        if new_user:
-            session['user_id'] = new_user['id']
-            session['user_email'] = new_user['email']
-            return redirect(url_for('home', user_id=new_user['id'])) 
-        else:
-            return render_template('login.html', error='Email already exists. Please choose a different email.')
+
+        with sqlite3.connect('library.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+            user = cursor.fetchone()
+
+        if user and check_password_hash(user[2], password):
+            session['user_id'] = user[0]
+            session['user_email'] = user[1]
+            session['is_admin'] = user[3]
+
+            if user[3]:  # If admin, redirect to add_new_section
+                return redirect(url_for('add_new_section.show_add_new_section'))
+            else:
+                return redirect(url_for('home', user_id=session['user_id']))  # Pass user_id
+
+        return render_template('login.html', error='Invalid email or password')
 
     return render_template('login.html')
+
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+
+        with sqlite3.connect('library.db') as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("INSERT INTO users (email, password, is_admin, is_block) VALUES (?, ?, 0, 0)", 
+                               (email, hashed_password))
+                conn.commit()
+                return redirect(url_for('login'))
+            except sqlite3.IntegrityError:
+                flash('Email already exists.', 'danger')
+
+    return render_template('signup.html')
+
+@app.route("/app/<int:user_id>")
+def home(user_id):
+    if session.get('user_id') != user_id:
+        return redirect(url_for('login'))
+
+    conn = sqlite3.connect('library.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    try:
+        all_books = get_all_books()
+        completed_books = get_completed_books(user_id)
+    except sqlite3.Error as e:
+        print("Error retrieving books:", e)
+        all_books, completed_books = [], []
+    finally:
+        conn.close()
+
+    return render_template("app.html", user_id=user_id, books=all_books, completed_books=completed_books)
 
 def get_all_books():
     with sqlite3.connect('library.db') as conn:
@@ -147,31 +203,11 @@ def get_completed_books(user_id):
         completed_books = cursor.fetchall()
     return completed_books
 
-@app.route("/app/<int:user_id>")
-def home(user_id):
-    if 'user_id' in session and session['user_id'] == user_id:
-        conn = sqlite3.connect('library.db')
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        try:
-            c.execute("SELECT * FROM books")
-            books = c.fetchall()
-        except sqlite3.Error as e:
-            print("Error retrieving books:", e)
-            books = []
-        finally:
-            conn.close()
-        all_books = get_all_books()
-        completed_books = get_completed_books(user_id)
-        return render_template("app.html", user_id=user_id, books=all_books, completed_books=completed_books)
-    else:
-        return redirect(url_for('login_or_signup'))
-    
 @app.route("/request_book", methods=['POST'])
 def request_book():
     if 'user_id' not in session:
         flash("User not logged in", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
     user_id = session['user_id']
     book_id = request.form.get('bookId')
@@ -244,13 +280,13 @@ def mybook(user_id):
         return render_template("mybook.html", user_id=user_id, requested_books=requested_books, completed_books=completed_books, granted_books=granted_books,current_date=current_date,parse_date=parse_date)
     else:
         flash("You are not logged in.", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
 @app.route("/return_book/<int:request_id>", methods=['POST'])
 def return_book(request_id):
     if 'user_id' not in session:
         flash("User not logged in", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
     user_id = session['user_id']
 
@@ -275,7 +311,7 @@ def return_book(request_id):
 def post_feedback_and_rating(request_id):
     if 'user_id' not in session:
         flash("User not logged in", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
     user_id = session['user_id']
     feedback = request.form.get('feedback')
@@ -298,7 +334,7 @@ def post_feedback_and_rating(request_id):
 def re_request_book(request_id):
     if 'user_id' not in session:
         flash("User not logged in", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
     user_id = session['user_id']
 
@@ -326,7 +362,7 @@ def user_dashboard(user_id):
         with sqlite3.connect('library.db') as conn:
             conn.row_factory = sqlite3.Row  # Set row factory here
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM login WHERE id = ?", (user_id,))
+            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
             user = cursor.fetchone()
 
             if user:
@@ -368,7 +404,7 @@ def user_dashboard(user_id):
                                requested_books_data=requested_books_data)
     else:
         flash("You are not logged in.", "error")
-        return redirect(url_for('login_or_signup'))
+        return redirect(url_for('login'))
 
 
 def get_requested_books_by_month(user_id):
@@ -427,7 +463,7 @@ def send_monthly_report_route(user_id):
         with sqlite3.connect('library.db') as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM login WHERE id = ?", (user_id,))
+            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
             user = cursor.fetchone()
 
             if user:
@@ -466,6 +502,11 @@ def send_monthly_report_ajax():
     if 'user_id' in session:
         user_id = session['user_id']
         return redirect(url_for('user_dashboard', user_id=user_id))
+@app.route('/logout')
+def logout():
+    session.clear()  # Removes all session data
+    return redirect(url_for('login'))
 
 if __name__ == "__main__":
+    create_admin()
     app.run(debug=True)

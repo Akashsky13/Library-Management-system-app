@@ -47,7 +47,7 @@ def librarian_dashboard():
     # Requests by User
     c.execute("""
         SELECT substr(l.email, 1, instr(l.email, '@') - 1) AS email, COUNT(*) AS num_requests 
-        FROM login AS l 
+        FROM users AS l 
         JOIN Requests AS r ON r.user_id = l.id 
         GROUP BY email
     """)

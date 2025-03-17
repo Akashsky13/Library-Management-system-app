@@ -16,7 +16,7 @@ def board():
     
     # Fetch user emails
     user_emails = {}
-    cursor.execute("SELECT id, email FROM login")
+    cursor.execute("SELECT id, email FROM users")
     users = cursor.fetchall()
     for user in users:
         user_emails[user[0]] = user[1]
