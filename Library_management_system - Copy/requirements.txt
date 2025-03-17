@@ -3,4 +3,5 @@ redis==4.1.0
 Flask
 Werkzeug
 PyMuPDF
+werkzeug.security
 gunicorn
